@@ -16,6 +16,8 @@ impl ResultAggregator {
             total_results_collected: 0,
         }
     }
+
+    #[allow(clippy::unnecessary_wraps)]
     pub fn add_result(&mut self, result: TaskResult) -> Result<(), Box<dyn Error>> {
         let graph_id = result.graph_id.clone();
         self.results_by_graph
