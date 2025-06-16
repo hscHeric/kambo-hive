@@ -1,4 +1,6 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
+
+use log::info;
 
 use crate::common::TaskResult;
 
@@ -22,7 +24,10 @@ impl ResultAggregator {
             .push(result);
 
         self.total_results_collected += 1;
-        info!("Resultado adicionado. total de resultados: {self.total_results_collected}");
+        info!(
+            "Resultado adicionado. total de resultados: {}",
+            self.total_results_collected
+        );
 
         // TODO: Adicionar lógica para verificar se todas as N execuções de um grafo foram concluídas.
         // Se sim, disparar o salvamento em arquivo (ex: csv, JSON, etc.).
