@@ -2,7 +2,7 @@
 #![deny(clippy::pedantic)]
 #![allow(clippy::enum_variant_names)]
 
-mod common;
-mod host;
-mod utils;
-mod worker;
+pub mod common;
+pub mod host;
+pub mod utils;
+pub mod worker;
