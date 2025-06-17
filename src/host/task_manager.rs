@@ -29,7 +29,7 @@ impl TaskManager {
     }
 
     pub fn add_new_graph_tasks(&mut self, graph_id: &str, num_runs: u32, ag_config: &str) {
-        info!("Adicionando {} tasks para o graph {}", num_runs, graph_id);
+        info!("Adicionando {num_runs} tasks para o graph {graph_id}");
         for i in 0..num_runs {
             let task = Task::new(graph_id.to_string(), i, ag_config.to_string());
             self.pending_tasks.push_back(task.clone());
@@ -53,22 +53,22 @@ impl TaskManager {
 
     pub fn mark_task_completed(&mut self, task_id: Uuid) -> Result<(), Box<dyn Error>> {
         if let Some((_, worker_id)) = self.assigned_tasks.remove(&task_id) {
-            info!("Task {} finalizada pelo worker {}", task_id, worker_id);
+            info!("Task {task_id} finalizada pelo worker {worker_id}");
             self.all_tasks_status.insert(task_id, TaskStatus::Completed);
             Ok(())
         } else {
-            warn!("Tentando marcar uma task não atribuida: {}", task_id);
-            Err(format!("Task {} não foi achada entre as tasks atribuidas", task_id).into())
+            warn!("Tentando marcar uma task não atribuida: {task_id}");
+            Err(format!("Task {task_id} não foi achada entre as tasks atribuidas").into())
         }
     }
 
     pub fn mark_task_failed(&mut self, task_id: Uuid) {
         if let Some((task, _)) = self.assigned_tasks.remove(&task_id) {
-            error!("Task {} failed, re-adding to pending tasks.", task_id);
+            error!("Task {task_id} failed, re-adding to pending tasks.");
             self.pending_tasks.push_front(task.clone());
             self.all_tasks_status.insert(task_id, TaskStatus::Failed);
         } else {
-            warn!("Tentando marcar uma task não atribuida: {}", task_id);
+            warn!("Tentando marcar uma task não atribuida: {task_id}");
         }
     }
 
