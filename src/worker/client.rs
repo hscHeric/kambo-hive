@@ -11,7 +11,6 @@ use uuid::Uuid;
 use crate::common::{GARunner, Request, Response};
 
 pub async fn start_worker<T: GARunner>(
-    // <--- CORRIGIDO AQUI
     host_addr: &str,
     worker_id: Uuid,
     ga_runner: Arc<T>,
@@ -71,7 +70,6 @@ async fn handle_host_connection<T: GARunner>(
         match response {
             Response::AssignTask { task } => {
                 info!("Trabalhador {} recebeu a tarefa {}", worker_id, task.id);
-                // Executa o algoritmo genético
                 let result = ga_runner.run(task, worker_id);
                 info!(
                     "Trabalhador {} terminou a tarefa {}. Melhor fitness: {}",
@@ -109,4 +107,3 @@ async fn handle_host_connection<T: GARunner>(
         }
     }
 }
-
