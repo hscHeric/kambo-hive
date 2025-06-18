@@ -2,7 +2,7 @@ use std::{collections::HashMap, error::Error};
 
 use log::info;
 
-use crate::common::TaskResult;
+use crate::common::{Task, TaskResult};
 
 pub struct ResultAggregator {
     results_by_graph: HashMap<String, Vec<TaskResult>>,
@@ -10,6 +10,7 @@ pub struct ResultAggregator {
 }
 
 impl ResultAggregator {
+    #[must_use]
     pub fn new() -> Self {
         ResultAggregator {
             results_by_graph: HashMap::new(),
@@ -17,7 +18,6 @@ impl ResultAggregator {
         }
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     pub fn add_result(&mut self, result: TaskResult) -> Result<(), Box<dyn Error>> {
         let graph_id = result.graph_id.clone();
         self.results_by_graph
@@ -31,13 +31,22 @@ impl ResultAggregator {
             self.total_results_collected
         );
 
-        // TODO: Adicionar lógica para verificar se todas as N execuções de um grafo foram concluídas.
-        // Se sim, disparar o salvamento em arquivo (ex: csv, JSON, etc.).
-        // Você precisaria de um mapa para saber quantas execuções são esperadas por graph_id.
         Ok(())
     }
 
+    #[must_use]
     pub fn get_results_collected(&self) -> usize {
         self.total_results_collected
+    }
+
+    #[must_use]
+    pub fn get_all_results(&self) -> &HashMap<String, Vec<TaskResult>> {
+        &self.results_by_graph
+    }
+}
+
+impl Default for ResultAggregator {
+    fn default() -> Self {
+        Self::new()
     }
 }
