@@ -10,8 +10,6 @@ use crate::common::Response;
 use crate::host::result_aggregator::ResultAggregator;
 use crate::host::task_manager::TaskManager;
 
-const BUFFER_SIZE: usize = 4096;
-
 pub async fn start_server(
     addr: &str,
     task_manager: Arc<Mutex<TaskManager>>,
@@ -37,7 +35,7 @@ pub async fn start_server(
 }
 
 async fn handle_client(
-    mut socket: TcpStream,
+    socket: TcpStream,
     task_manager: Arc<Mutex<TaskManager>>,
     result_aggregator: Arc<Mutex<ResultAggregator>>,
 ) -> Result<(), Box<dyn Error>> {

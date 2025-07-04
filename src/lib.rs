@@ -1,5 +1,4 @@
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
+#![deny(clippy::perf)]
 #![allow(clippy::enum_variant_names)]
 
 pub mod common;

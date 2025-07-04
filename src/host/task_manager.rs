@@ -83,3 +83,9 @@ impl TaskManager {
             .count()
     }
 }
+
+impl Default for TaskManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}

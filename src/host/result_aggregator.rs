@@ -2,7 +2,7 @@ use std::{collections::HashMap, error::Error};
 
 use log::info;
 
-use crate::common::{Task, TaskResult};
+use crate::common::TaskResult;
 
 pub struct ResultAggregator {
     results_by_graph: HashMap<String, Vec<TaskResult>>,
