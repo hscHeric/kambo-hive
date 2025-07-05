@@ -1,6 +1,9 @@
-use std::{net::UdpSocket, time::Duration};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    time::Duration,
+};
 
-use log::{error, info};
+use log::{error, info, warn};
 
 pub fn init_logger() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -8,59 +11,103 @@ pub fn init_logger() {
 }
 
 const DISCOVERY_PORT: u16 = 2901;
-const DISCOVERY_MESSAGE: &[u8] = b"KAMBO_HIVE_WORKER_DISCOVERY";
-const RESPONSE_PREFIX: &[u8] = b"KAMBO_HIVE_HOST_RESPONSE:";
+const DISCOVERY_MESSAGE: &[u8] = b"KAMBO_HIVE_DISCOVERY_REQUEST";
+const RESPONSE_PREFIX: &[u8] = b"KAMBO_HIVE_HOST_IS_AT:";
 
-pub fn discovery_host() -> Result<String, Box<dyn std::error::Error>> {
-    let udp_socket = UdpSocket::bind("0.0.0.0:0")?;
-    let _ = udp_socket.set_broadcast(true);
-    udp_socket.set_read_timeout(Some(Duration::from_secs(5)))?;
+pub fn discover_host() -> Result<String, Box<dyn std::error::Error>> {
+    let socket = UdpSocket::bind("0.0.0.0:0")?;
+    socket.set_broadcast(true)?;
+    socket.set_read_timeout(Some(Duration::from_secs(5)))?;
 
-    info!("Procurando por um host na rede local na porta {DISCOVERY_PORT}...",);
-
-    udp_socket.send_to(DISCOVERY_MESSAGE, ("255.255.255.255", DISCOVERY_PORT))?;
+    info!(
+        "Enviando broadcast para encontrar host na porta {}...",
+        DISCOVERY_PORT
+    );
+    socket.send_to(DISCOVERY_MESSAGE, ("255.255.255.255", DISCOVERY_PORT))?;
 
     let mut buf = [0; 1024];
-    match udp_socket.recv_from(&mut buf) {
+    match socket.recv_from(&mut buf) {
         Ok((amt, src)) => {
             let response = &buf[..amt];
             if response.starts_with(RESPONSE_PREFIX) {
-                // 4. Extrai o endereço do host da resposta.
                 let host_addr = String::from_utf8(response[RESPONSE_PREFIX.len()..].to_vec())?;
-                info!("Host encontrado em: {host_addr} (respondido por {src})");
+                info!("Host encontrado em {} (respondido por {})", host_addr, src);
                 Ok(host_addr)
             } else {
-                Err("Resposta inválida recebida.".into())
+                Err("Resposta inválida do host.".into())
             }
         }
         Err(e) => {
-            error!("Nenhum host encontrado na rede: {e}");
+            error!("Não foi possível encontrar um host na rede: {}", e);
             Err(e.into())
         }
     }
 }
 
-pub async fn listen_for_workers(host_address_to_advertise: String) {
-    let socket = match UdpSocket::bind(("0.0.0.0", DISCOVERY_PORT)) {
-        Ok(s) => s,
-        Err(e) => {
-            error!("Falha ao iniciar o listener de descoberta UDP: {e}");
+pub async fn listen_for_workers(tcp_bind_addr: String) {
+    let tcp_port = match tcp_bind_addr.split(':').last() {
+        Some(port) => port,
+        None => {
+            error!(
+                "Endereço de bind inválido para o listener: {}",
+                tcp_bind_addr
+            );
             return;
         }
     };
-    info!("Host aguardando por broadcasts de workers na porta {DISCOVERY_PORT}");
+
+    let socket = match UdpSocket::bind(("0.0.0.0", DISCOVERY_PORT)) {
+        Ok(s) => s,
+        Err(e) => {
+            error!(
+                "Falha ao escutar na porta de descoberta {}: {}",
+                DISCOVERY_PORT, e
+            );
+            return;
+        }
+    };
+    info!(
+        "Host escutando por broadcasts de descoberta na porta {}",
+        DISCOVERY_PORT
+    );
 
     let mut buf = [0; 1024];
     loop {
-        if let Ok((amt, src)) = socket.recv_from(&mut buf) {
+        if let Ok((amt, worker_addr)) = socket.recv_from(&mut buf) {
             if &buf[..amt] == DISCOVERY_MESSAGE {
-                info!("Broadcast de descoberta recebido de {}", src);
-                let response = [RESPONSE_PREFIX, host_address_to_advertise.as_bytes()].concat();
-                // Responde diretamente ao worker que enviou o broadcast.
-                if let Err(e) = socket.send_to(&response, src) {
-                    error!("Falha ao responder ao worker {}: {}", src, e);
+                info!("Requisição de descoberta recebida de {}", worker_addr);
+
+                // Descobre qual IP local usar para responder ao worker
+                if let Some(local_ip) = get_local_ip_for_target(worker_addr) {
+                    let response_addr = format!("{}:{}", local_ip, tcp_port);
+                    info!(
+                        "Respondendo para {} com o endereço: {}",
+                        worker_addr, response_addr
+                    );
+
+                    let payload = [RESPONSE_PREFIX, response_addr.as_bytes()].concat();
+
+                    if let Err(e) = socket.send_to(&payload, worker_addr) {
+                        error!("Falha ao enviar resposta para {}: {}", worker_addr, e);
+                    }
+                } else {
+                    warn!(
+                        "Não foi possível determinar o IP local para responder a {}",
+                        worker_addr
+                    );
                 }
             }
         }
     }
+}
+
+fn get_local_ip_for_target(target_addr: SocketAddr) -> Option<std::net::IpAddr> {
+    UdpSocket::bind("0.0.0.0:0")
+        .and_then(|socket| {
+            socket
+                .connect(target_addr)
+                .and_then(|_| socket.local_addr())
+        })
+        .map(|local_addr| local_addr.ip())
+        .ok()
 }
