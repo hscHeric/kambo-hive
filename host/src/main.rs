@@ -51,14 +51,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pop_size: None,
     };
     let ag_config_str = serde_json::to_string(&ga_config)?;
-    info!("Lendo grafos de: {}", graphs_path);
+    info!("Lendo grafos de: {graphs_path}");
     let paths = fs::read_dir(graphs_path)?;
     let mut tm = task_manager.lock().await;
     for path in paths {
         let path = path?.path();
         if path.is_file() {
             if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                info!("Adicionando tasks para o grafo: {}", file_name);
+                info!("Adicionando tasks para o grafo: {file_name}");
                 tm.add_new_graph_tasks(file_name, ga_config.trials, &ag_config_str);
             }
         }
@@ -78,11 +78,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         warn!("Salvamento periódico desativado. Forneça um caminho e intervalo para ativar.");
     }
 
-    info!("Host TCP escutando em {}", bind_addr);
+    info!("Host TCP escutando em {bind_addr}");
     if let Err(e) =
         kambo_hive::host::server::start_server(bind_addr, task_manager, result_aggregator).await
     {
-        error!("Erro no servidor: {}", e);
+        error!("Erro no servidor: {e}");
     }
 
     Ok(())

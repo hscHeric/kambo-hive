@@ -12,7 +12,7 @@ pub struct ResultAggregator {
 impl ResultAggregator {
     #[must_use]
     pub fn new() -> Self {
-        ResultAggregator {
+        Self {
             results_by_graph: HashMap::new(),
             total_results_collected: 0,
         }
@@ -35,12 +35,12 @@ impl ResultAggregator {
     }
 
     #[must_use]
-    pub fn get_results_collected(&self) -> usize {
+    pub const fn get_results_collected(&self) -> usize {
         self.total_results_collected
     }
 
     #[must_use]
-    pub fn get_all_results(&self) -> &HashMap<String, Vec<TaskResult>> {
+    pub const fn get_all_results(&self) -> &HashMap<String, Vec<TaskResult>> {
         &self.results_by_graph
     }
 }

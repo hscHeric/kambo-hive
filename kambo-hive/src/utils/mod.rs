@@ -19,10 +19,7 @@ pub fn discover_host() -> Result<String, Box<dyn std::error::Error>> {
     socket.set_broadcast(true)?;
     socket.set_read_timeout(Some(Duration::from_secs(5)))?;
 
-    info!(
-        "Enviando broadcast para encontrar host na porta {}...",
-        DISCOVERY_PORT
-    );
+    info!("Enviando broadcast para encontrar host na porta {DISCOVERY_PORT}...");
     socket.send_to(DISCOVERY_MESSAGE, ("255.255.255.255", DISCOVERY_PORT))?;
 
     let mut buf = [0; 1024];
@@ -34,73 +31,54 @@ pub fn discover_host() -> Result<String, Box<dyn std::error::Error>> {
 
                 let host_addr = std::str::from_utf8(addr_bytes)?.trim().to_string();
 
-                info!(
-                    "Host encontrado em '{}' (respondido por {})",
-                    host_addr, src
-                );
+                info!("Host encontrado em '{host_addr}' (respondido por {src})");
                 Ok(host_addr)
             } else {
                 Err("Resposta inválida do host.".into())
             }
         }
         Err(e) => {
-            error!("Não foi possível encontrar um host na rede: {}", e);
+            error!("Não foi possível encontrar um host na rede: {e}");
             Err(e.into())
         }
     }
 }
 
 pub async fn listen_for_workers(tcp_bind_addr: String) {
-    let tcp_port = match tcp_bind_addr.split(':').next_back() {
-        Some(port) => port,
-        None => {
-            error!(
-                "Endereço de bind inválido para o listener: {}",
-                tcp_bind_addr
-            );
-            return;
-        }
+    let tcp_port = if let Some(port) = tcp_bind_addr.split(':').next_back() {
+        port
+    } else {
+        error!("Endereço de bind inválido para o listener: {tcp_bind_addr}");
+        return;
     };
 
     let socket = match UdpSocket::bind(("0.0.0.0", DISCOVERY_PORT)) {
         Ok(s) => s,
         Err(e) => {
-            error!(
-                "Falha ao escutar na porta de descoberta {}: {}",
-                DISCOVERY_PORT, e
-            );
+            error!("Falha ao escutar na porta de descoberta {DISCOVERY_PORT}: {e}");
             return;
         }
     };
-    info!(
-        "Host escutando por broadcasts de descoberta na porta {}",
-        DISCOVERY_PORT
-    );
+    info!("Host escutando por broadcasts de descoberta na porta {DISCOVERY_PORT}");
 
     let mut buf = [0; 1024];
     loop {
         if let Ok((amt, worker_addr)) = socket.recv_from(&mut buf) {
             if &buf[..amt] == DISCOVERY_MESSAGE {
-                info!("Requisição de descoberta recebida de {}", worker_addr);
+                info!("Requisição de descoberta recebida de {worker_addr}");
 
                 // Descobre qual IP local usar para responder ao worker
                 if let Some(local_ip) = get_local_ip_for_target(worker_addr) {
-                    let response_addr = format!("{}:{}", local_ip, tcp_port);
-                    info!(
-                        "Respondendo para {} com o endereço: {}",
-                        worker_addr, response_addr
-                    );
+                    let response_addr = format!("{local_ip}:{tcp_port}");
+                    info!("Respondendo para {worker_addr} com o endereço: {response_addr}");
 
                     let payload = [RESPONSE_PREFIX, response_addr.as_bytes()].concat();
 
                     if let Err(e) = socket.send_to(&payload, worker_addr) {
-                        error!("Falha ao enviar resposta para {}: {}", worker_addr, e);
+                        error!("Falha ao enviar resposta para {worker_addr}: {e}");
                     }
                 } else {
-                    warn!(
-                        "Não foi possível determinar o IP local para responder a {}",
-                        worker_addr
-                    );
+                    warn!("Não foi possível determinar o IP local para responder a {worker_addr}");
                 }
             }
         }
@@ -112,7 +90,7 @@ fn get_local_ip_for_target(target_addr: SocketAddr) -> Option<std::net::IpAddr> 
         .and_then(|socket| {
             socket
                 .connect(target_addr)
-                .and_then(|_| socket.local_addr())
+                .and_then(|()| socket.local_addr())
         })
         .map(|local_addr| local_addr.ip())
         .ok()

@@ -26,10 +26,7 @@ struct SaverResults {
 }
 
 pub fn start(aggregator: Arc<Mutex<ResultAggregator>>, file_path: String, interval_secs: u64) {
-    info!(
-        "Salvamento periódico ativado. Arquivo: '{}', Intervalo: {}s.",
-        file_path, interval_secs
-    );
+    info!("Salvamento periódico ativado. Arquivo: '{file_path}', Intervalo: {interval_secs}s.");
 
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
@@ -72,16 +69,13 @@ pub fn start(aggregator: Arc<Mutex<ResultAggregator>>, file_path: String, interv
             match serde_json::to_string_pretty(&formatted_results) {
                 Ok(json_data) => {
                     if let Err(e) = fs::write(&file_path, json_data) {
-                        error!(
-                            "Falha ao escrever no arquivo de resultados '{}': {}",
-                            file_path, e
-                        );
+                        error!("Falha ao escrever no arquivo de resultados '{file_path}': {e}");
                     } else {
                         info!("Resultados salvos com sucesso.");
                     }
                 }
                 Err(e) => {
-                    error!("Falha ao serializar resultados para JSON: {}", e);
+                    error!("Falha ao serializar resultados para JSON: {e}");
                 }
             }
         }
