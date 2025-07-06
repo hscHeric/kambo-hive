@@ -1,3 +1,13 @@
+[workspace.package]
+version = "0.1.0"
+authors = ["Heric da Silva Cruz <hericsilvaho@gmail.com>"]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/hscHeric/kambo-hive"
+homepage = "https://github.com/hscHeric/kambo-hive"
+readme = "README.md"
+keywords = ["distribuido", "genetico", "computacao"]
+
 [workspace]
 resolver = "3"
 members = ["kambo-hive", "host", "worker"]
