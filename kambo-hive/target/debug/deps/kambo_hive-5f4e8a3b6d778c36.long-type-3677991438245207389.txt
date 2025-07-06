@@ -1,1 +1,0 @@
-impl core::future::future::Future<Output = core::result::Result<tokio::net::udp::UdpSocket, std::io::error::Error>>
