@@ -4,7 +4,7 @@ mod graph;
 use genetic_algorithm::RomanDominationGA;
 use graph::Graph;
 use kambo_hive::common::{GARunner, Task, TaskResult};
-use kambo_hive::utils::init_logger;
+use kambo_hive::utils::{discover_host, init_logger};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::{env, path::Path, sync::Arc, time::Instant};
@@ -65,7 +65,7 @@ impl GARunner for RomanDominationGARunner {
             graph_id: task.graph_id.clone(),
             worker_id,
             fitness: fitness_value,
-            solution_data: Vec::new(), // Opcional: pode serializar `solution.labels` aqui
+            solution_data: Vec::new(),
             interations_run: ga_config.generations as u32,
             processing_time_ms,
         }
@@ -76,22 +76,40 @@ impl GARunner for RomanDominationGARunner {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logger();
     let args: Vec<String> = env::args().collect();
+
     if args.len() < 3 {
-        eprintln!("Uso: {} <host_addr:port> <graphs_path>", args[0]);
+        eprintln!("Uso: {} <host_addr:port | --auto> <graphs_path>", args[0]);
         std::process::exit(1);
     }
 
-    let host_addr = &args[1];
+    let host_addr = if args[1] == "--auto" {
+        info!("Iniciando descoberta automática de host...");
+        match discover_host() {
+            Ok(addr) => {
+                info!("Host encontrado com sucesso em: {}", addr);
+                addr
+            }
+            Err(e) => {
+                error!("Falha na descoberta automática: {}", e);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        args[1].clone()
+    };
+
     let graphs_path = &args[2];
     let worker_id = Uuid::new_v4();
 
     info!("Iniciando worker {}...", worker_id);
+    info!("Conectando ao host: {}", host_addr);
+    info!("Usando grafos de: {}", graphs_path);
 
     let ga_runner = Arc::new(RomanDominationGARunner {
         graphs_path: graphs_path.clone(),
     });
 
-    if let Err(e) = kambo_hive::worker::client::start_worker(host_addr, worker_id, ga_runner).await
+    if let Err(e) = kambo_hive::worker::client::start_worker(&host_addr, worker_id, ga_runner).await
     {
         error!("Erro fatal no worker: {}", e);
     }

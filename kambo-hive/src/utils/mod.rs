@@ -30,8 +30,14 @@ pub fn discover_host() -> Result<String, Box<dyn std::error::Error>> {
         Ok((amt, src)) => {
             let response = &buf[..amt];
             if response.starts_with(RESPONSE_PREFIX) {
-                let host_addr = String::from_utf8(response[RESPONSE_PREFIX.len()..].to_vec())?;
-                info!("Host encontrado em {} (respondido por {})", host_addr, src);
+                let addr_bytes = &response[RESPONSE_PREFIX.len()..];
+
+                let host_addr = std::str::from_utf8(addr_bytes)?.trim().to_string();
+
+                info!(
+                    "Host encontrado em '{}' (respondido por {})",
+                    host_addr, src
+                );
                 Ok(host_addr)
             } else {
                 Err("Resposta inválida do host.".into())
