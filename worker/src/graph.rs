@@ -2,10 +2,9 @@ use std::{
     collections::HashSet,
     fs::File,
     io::{self, BufRead},
-    usize,
 };
 
-use rand::seq::IteratorRandom;
+use rand::{rng, seq::IteratorRandom};
 
 #[derive(Clone)]
 pub struct Graph {
@@ -13,23 +12,27 @@ pub struct Graph {
 }
 
 impl Graph {
+    #[must_use]
     pub fn new(num_vertices: usize, edges: &[(usize, usize)]) -> Self {
         let mut adjacency_list = vec![vec![]; num_vertices];
         for &(u, v) in edges {
             adjacency_list[u].push(v);
             adjacency_list[v].push(u);
         }
-        Graph { adjacency_list }
+        Self { adjacency_list }
     }
 
+    #[must_use]
     pub fn get_num_vertices(&self) -> usize {
         self.adjacency_list.len()
     }
 
+    #[must_use]
     pub fn get_neighbors(&self, vertex: usize) -> &Vec<usize> {
         &self.adjacency_list[vertex]
     }
 
+    #[must_use]
     pub fn get_vertex_degree(&self, vertex: usize) -> usize {
         self.adjacency_list[vertex].len()
     }
@@ -48,10 +51,11 @@ impl Graph {
         self.adjacency_list[v].push(u);
     }
 
+    #[must_use]
     pub fn h1(&self) -> Vec<u8> {
         let mut f: Vec<u8> = vec![0; self.adjacency_list.len()];
         let mut unvisited: HashSet<usize> = (0..self.adjacency_list.len()).collect();
-        let mut rng = rand::thread_rng();
+        let mut rng = rng();
 
         while !unvisited.is_empty() {
             let &u = unvisited.iter().choose(&mut rng).unwrap();
@@ -74,6 +78,7 @@ impl Graph {
         f
     }
 
+    #[must_use]
     pub fn h2(&self) -> Vec<u8> {
         let mut f: Vec<u8> = vec![0; self.adjacency_list.len()];
         let mut unvisited: Vec<usize> = (0..self.adjacency_list.len()).collect();
@@ -100,6 +105,7 @@ impl Graph {
         f
     }
 
+    #[must_use]
     pub fn h3(&self) -> Vec<u8> {
         let mut f: Vec<u8> = vec![0; self.adjacency_list.len()];
         let mut unvisited: HashSet<usize> = (0..self.adjacency_list.len()).collect();
@@ -126,7 +132,7 @@ impl Graph {
                 .get_neighbors(max_vertex)
                 .iter()
                 .filter(|&&n| unvisited.contains(&n))
-                .cloned()
+                .copied()
                 .collect();
 
             for neighbor in neighbors {
@@ -143,6 +149,7 @@ impl Graph {
         f
     }
 
+    #[must_use]
     pub fn h4(&self) -> Vec<u8> {
         let mut f: Vec<u8> = vec![0; self.adjacency_list.len()];
         let mut unvisited: HashSet<usize> = (0..self.adjacency_list.len()).collect();
@@ -168,7 +175,7 @@ impl Graph {
                 .get_neighbors(max_vertex)
                 .iter()
                 .filter(|&&n| unvisited.contains(&n))
-                .cloned()
+                .copied()
                 .collect();
 
             for neighbor in neighbors {
@@ -187,7 +194,7 @@ impl Graph {
                         .count()
                         == 0
                 })
-                .cloned()
+                .copied()
                 .collect();
 
             for vertex in isolated {
@@ -204,10 +211,10 @@ impl Graph {
         f
     }
 
-    pub fn from_file(file_path: String) -> io::Result<Self> {
-        let file = File::open(&file_path)?;
+    pub fn from_file(file_path: &str) -> io::Result<Self> {
+        let file = File::open(file_path)?;
         let reader = io::BufReader::new(file);
-        let mut g = Graph::new(0, &[]);
+        let mut g = Self::new(0, &[]);
 
         for line in reader.lines() {
             let line = line?;
@@ -227,13 +234,5 @@ impl Graph {
         }
 
         Ok(g)
-    }
-
-    pub fn get_graph_size(&self) -> usize {
-        let mut edge_count = 0;
-        for v in &self.adjacency_list {
-            edge_count += v.len();
-        }
-        edge_count / 2
     }
 }
