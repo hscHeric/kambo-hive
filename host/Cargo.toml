@@ -12,4 +12,4 @@ log = "0.4"
 env_logger = "0.11"
 rayon = "1.10.0"
 rand = "0.8.5"
-kambo-hive = { git = "https://github.com/hscHeric/kambo-hive" }
+kambo-hive = { path = "../kambo-hive" }
