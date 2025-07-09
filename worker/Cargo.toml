@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rand = "0.9.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+rayon = { workspace = true }
+rand = { workspace = true }
 kambo-hive = { path = "../kambo-hive" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
-uuid = { version = "1.17.0", features = ["v4", "serde"] }
-log = "0.4"
-env_logger = "0.11"
-rayon = "1.10.0"
