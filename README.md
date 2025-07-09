@@ -20,10 +20,10 @@
 
   <h3>Host</h3>
   <p>Inicie o host com:</p>
-  <pre><code>./target/release/kambo-hive-host 0.0.0.0:12345 ./graphs report.json fifo</code></pre>
+  <pre><code>Uso: ./target/release/kambo-hive-host bind_addr:port graphs_path report_path strategy results_path save_interval_secs</code></pre>
 
   <h3>Worker</h3>
   <p>Conecte o worker com:</p>
-  <pre><code>./target/release/kambo-hive-worker 192.168.1.100:12345 ./graphs</code></pre>
+  <pre><code>./target/release/kambo-hive-worker host_addr:port graphs_path</code></pre>
   <p>Ou use detecção automática:</p>
-  <pre><code>./target/release/kambo-hive-worker --auto ./graphs</code></pre>
+  <pre><code> ./target/release/kambo-hive-worker --auto graphs_path </code></pre>
