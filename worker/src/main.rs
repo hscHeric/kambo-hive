@@ -1,4 +1,4 @@
-use std::{env::args, path::Path, sync::Arc, time::Instant};
+use std::{env, path::Path, sync::Arc, time::Instant};
 
 use kambo_hive::{
     common::{GARunner, Task, TaskResult},
@@ -31,14 +31,12 @@ impl GARunner for HeuristicRunner {
             worker_id, task.id, task.graph_id
         );
 
-        // Aqui eu coloquei só a leitura e não estou usando, mas poderia ser usado para configurar
-        // o algoritmo, uma opbservação é que cada task poderia usar uma confgiuração diferente.
         let _ga_config: GAConfig = serde_json::from_str(&task.ag_config)
             .expect("Falha ao deserializar a GAConfig da task. A configuração é necessária.");
 
         let start_time = Instant::now();
         let graph_file_path = Path::new(&self.graphs_path)
-            .join(format!("{}", &task.graph_id))
+            .join(&task.graph_id)
             .to_str()
             .unwrap()
             .to_string();
@@ -53,14 +51,16 @@ impl GARunner for HeuristicRunner {
             2 => graph.h2(),
             3 => graph.h3(),
             4 => graph.h4(),
-            _ => unreachable!(), // gen_range(1..=4) garante que isso nunca aconteça
+            _ => unreachable!(),
         };
 
+        let algorithm_details = format!("H{}", heuristic_choice);
         let fitness = solution_data.iter().map(|&value| f64::from(value)).sum();
         let processing_time_ms = start_time.elapsed().as_millis() as u64;
+
         info!(
-            "Task {} finalizada para o grafo '{}' com fitness de {} (usando H{})",
-            task.id, task.graph_id, fitness, heuristic_choice
+            "Task {} finalizada para o grafo '{}' com fitness de {} (usando {})",
+            task.id, task.graph_id, fitness, algorithm_details
         );
 
         TaskResult {
@@ -78,15 +78,21 @@ impl GARunner for HeuristicRunner {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logger();
-    let args: Vec<String> = args().collect();
+    let args: Vec<String> = env::args().collect();
+
     if args.len() < 3 {
-        eprintln!("Uso: {} <host_addr:port | --auto> <graphs_path>", args[0]);
+        eprintln!("Uso: {} <host_addr:port> <graphs_path>", args[0]);
+        eprintln!("   ou: {} --auto <graphs_path>", args[0]);
+        eprintln!("A ordem de '--auto' e '<graphs_path>' não importa.");
         std::process::exit(1);
     }
 
-    let host_addr = if args[1] == "--auto" {
+    let host_addr: String;
+    let graphs_path: String;
+
+    if args.contains(&"--auto".to_string()) {
         info!("Iniciando descoberta automática de host...");
-        match discover_host() {
+        host_addr = match discover_host() {
             Ok(addr) => {
                 info!("Host encontrado com sucesso em: {addr}");
                 addr
@@ -95,12 +101,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 error!("Falha na descoberta automática: {e}");
                 std::process::exit(1);
             }
-        }
-    } else {
-        args[1].clone()
-    };
+        };
 
-    let graphs_path = &args[2];
+        graphs_path = args
+            .iter()
+            .skip(1) // Pula o nome do programa
+            .find(|arg| **arg != "--auto")
+            .expect("Caminho para os grafos não foi fornecido junto com a flag --auto.")
+            .clone();
+    } else {
+        host_addr = args[1].clone();
+        graphs_path = args[2].clone();
+    }
+
     let worker_id = Uuid::new_v4();
 
     info!("Iniciando worker {worker_id}...");
